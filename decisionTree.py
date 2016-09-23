@@ -4,7 +4,8 @@ import math
 inputTable = 0
 depth = 10
 target = "Class"
-
+testTable = 0
+classList =[[]]
 class Node:
 
     def __init__(self, depth, constraintVal={}):
@@ -28,6 +29,9 @@ class Node:
 
     def get_connections(self):
         return self.child.values()
+
+    def get_child(self,key):
+            return self.child.get(key)
 
     def get_id(self):
         return self.id
@@ -204,6 +208,32 @@ def traverseTree(node):
     for child in node:
         traverseTree(child)
 
+#------------------------------------------------------------------------------------------------------
+#--------------------------Get accuracy for plotting graph--------------------------------------------
+#------------------------------------------------------------------------------------------------------
+
+def getAccuracyRow(row, node):
+    print "labe -----" + node.get_id()
+    label = node.get_id()
+    # Base condition
+    if node.id == "leaf" or node.classLabel != "":
+        classLabel = node.get_classLabel()
+        return classLabel
+    child = node.get_child(row[label])
+    return getAccuracyRow(row, child)
+
+
+
+
+def getAccuracy(node):
+    global classList
+    for index, row in testTable.iterrows():
+        myList = []
+        myList.append(row['Class'])
+        myList.append(getAccuracyRow(row, node))
+        classList.append(myList)
+    print classList
+
 
 #-------------------------------------------------------------------------------------------------------
 #---------------Main function  --------------------------------------------------------------------------
@@ -218,11 +248,10 @@ if __name__ == '__main__':
     print "Printing tree \n"
     traverseTree(root)
 
+    accuracy = {}
+    testTable = CreateTable("/home/soumya/Desktop/Test_1.txt")
 
-
-
-
-
+    getAccuracy(root)
 
 
 
