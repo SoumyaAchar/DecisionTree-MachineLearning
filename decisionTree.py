@@ -1,8 +1,11 @@
 import pandas as pd
 import math
+import random
+import matplotlib.pyplot as plt
+import sys
 
 inputTable = 0
-depth = 10
+depth = 13
 target = "Class"
 testTable = 0
 classList =[[]]
@@ -168,11 +171,13 @@ def buildTree(node):
 
     # Base case 1 : If Depth is reached, assign class label as ID;
     if node.get_depth() == depth:
+            node.id = "leaf"
             node.classLabel =  getClassLabel(modifiedTable)
             return
 
     #Base case 2  All unique values in the record
     if len(pd.unique(modifiedTable[classLabel].values)) == 1:
+        node.id = "leaf"
         node.classLabel =  getClassLabel(modifiedTable)
         return
 
@@ -181,7 +186,6 @@ def buildTree(node):
     feature = findBestSplit(node)
     node.id = feature
     attributes = pd.unique(modifiedTable[feature].values)
-    print attributes
 
     #create children with the attribute list
     for attribute in attributes:
@@ -213,45 +217,88 @@ def traverseTree(node):
 #------------------------------------------------------------------------------------------------------
 
 def getAccuracyRow(row, node):
-    print "labe -----" + node.get_id()
     label = node.get_id()
-    # Base condition
-    if node.id == "leaf" or node.classLabel != "":
+    # Base condition when we hit leaf node
+    if node.id == "leaf":
         classLabel = node.get_classLabel()
         return classLabel
+
+    #Base case 2, when there is no training path available
     child = node.get_child(row[label])
+    if child is None:
+        if random.random()>0.5:
+            return 1
+        else:
+            return 0
+
     return getAccuracyRow(row, child)
-
-
 
 
 def getAccuracy(node):
     global classList
+    countFalse = 0
+    countTrue = 0
+    total=0
+    TP=0; TN=0; FP=0; FN=0
     for index, row in testTable.iterrows():
         myList = []
         myList.append(row['Class'])
         myList.append(getAccuracyRow(row, node))
         classList.append(myList)
-    print classList
+    for items in classList:
+        if items != []:
+            if items[0] == items[1]:
+                countTrue=countTrue+1
+                total+=1
+                if items[0] == 1:
+                    TP+=1
+                else:
+                    TN+=1
+            else:
+                countFalse = countFalse+1
+                total+=1
+                if items[0] == 1:
+                    FN+=1
+                else:
+                    FP+=1
+    accuracy = float(countTrue)/total
+    print "\n\n-------------Accuracy for depth",depth, " is:  " , accuracy*100
+    print "\n"
+    print "-----------Confusion matrix--------------"
+    print "\n            PredictedNo       PredictedYes"
+    print "\nActualNo      ",TN,"            ",FP
+    print "\nActaulYes     ",FN,"            ",TP,"\n\n"
+    return accuracy*100
+
 
 
 #-------------------------------------------------------------------------------------------------------
 #---------------Main function  --------------------------------------------------------------------------
 #--------------------------------------------------------------------------------------------------------
 if __name__ == '__main__':
+    if len(sys.argv) != 4:
+        print "Usage: decisionTree.py <depth> <trainFilePath> <testFilePath>"
+        sys.exit(0)
+    depth = sys.argv[1]
+    inputTable = CreateTable(sys.argv[2])
+    testTable = CreateTable(sys.argv[3])
 
-    inputTable = CreateTable("/home/soumya/Desktop/Train_1.txt")
-    print inputTable
     root = Node(0)
     buildTree(root)
 
-    print "Printing tree \n"
-    traverseTree(root)
+    # Plot simple graph
+    accuracyPlot =[]
+    depthPlot = []
+    for i in range(1,int(depth)):
+        accuracyPlot.append(getAccuracy(root))
+        depthPlot.append(i)
 
-    accuracy = {}
-    testTable = CreateTable("/home/soumya/Desktop/Test_1.txt")
+    plt.plot(depthPlot, accuracyPlot, 'ro')
+    plt.axis([1, 16, 80, 83])
+    plt.show()
 
-    getAccuracy(root)
+
+
 
 
 
