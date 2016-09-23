@@ -2,13 +2,13 @@ import pandas as pd
 import math
 
 inputTable = 0
-depth = 3
+depth = 10
 target = "Class"
 
 class Node:
 
     def __init__(self, depth, constraintVal={}):
-        self.id = "leaf"
+        self.id ="leaf"
         self.depth = depth
         self.constraint = constraintVal
         self.child = {}
@@ -63,9 +63,7 @@ def findBestSplit(node):
         for key in constraints:
             modifiedTable = modifiedTable.drop(key,1)
 
-    #print modifiedTable
     outerdict = {}
-
 
     totalRows = len(modifiedTable.index)
     #print 'Total rows: ',totalRows
@@ -88,6 +86,14 @@ def findBestSplit(node):
         outerdict[colname]=innerdict
 
     minEntopy = 1       # initialize to 1 as 1 is maximum value that entropy can take
+    getOneKey=True
+    for key in outerdict:
+        feature = key
+        if getOneKey:
+            getOneKey=False
+        break
+
+    #feature = outerdict.get
     for key,value in outerdict.iteritems():
         entropy = helper(value,totalRows)
         #print 'Attribute entropy',entropy
@@ -121,6 +127,8 @@ def CreateTable(path):
 def getClassLabel(modifiedTable):
     c0=0
     c1=0
+    yesVal =1
+    noVal =0
     for index,row in modifiedTable.iterrows():
         if row[target] == 'Yes' or row[target] == 'Y' or row[target] == 1:
             c1+=1
@@ -135,12 +143,12 @@ def getClassLabel(modifiedTable):
 
     if (c0 <= c1):
         if isString:
-            c1 = "Yes"
-        return c1
+            return "Yes"
+        return yesVal
 
     if isString:
-        c0 = "No"
-        return c0
+        return "No"
+    return noVal
 #----------------------------------------------------------------------------------------------------------
 #------------- Build the Tree-------------------------------------------
 #-----------------------------------------------------------------------------------------------------------
@@ -149,32 +157,27 @@ def buildTree(node):
     global depth
     global inputTable
     classLabel = "Class"
-    # Base case 1 : If Depth is reached, assign class label as ID;
-    if node.get_depth() == depth:
-        modifiedTable = inputTable
-        nodeContraints = node.get_constraint()
-        if len(nodeContraints.keys()) != 0:
-            modifiedTable = inputTable.loc[inputTable[nodeContraints.keys()].
-            apply(lambda x: x.tolist() == nodeContraints.values(),axis=1)]
-            node.classLabel =  getClassLabel(modifiedTable)
-        return
-
-    #Base case 2  All unique values in the record
+    modifiedTable = inputTable
     nodeContraints = node.get_constraint()
     if len(nodeContraints.keys()) != 0:
-        modifiedTable = inputTable.loc[inputTable[nodeContraints.keys()].
-            apply(lambda x: x.tolist() == nodeContraints.values(),axis=1)]
+        modifiedTable = inputTable.loc[inputTable[nodeContraints.keys()].apply(lambda x: x.tolist() == nodeContraints.values(),axis=1)]
 
-        if len(pd.unique(modifiedTable[classLabel].values)) == 1:
+    # Base case 1 : If Depth is reached, assign class label as ID;
+    if node.get_depth() == depth:
             node.classLabel =  getClassLabel(modifiedTable)
             return
+
+    #Base case 2  All unique values in the record
+    if len(pd.unique(modifiedTable[classLabel].values)) == 1:
+        node.classLabel =  getClassLabel(modifiedTable)
+        return
 
 
     #Find best feature and their attributes
     feature = findBestSplit(node)
-    print "Node id is " + feature
     node.id = feature
-    attributes = pd.unique(inputTable[feature].values)
+    attributes = pd.unique(modifiedTable[feature].values)
+    print attributes
 
     #create children with the attribute list
     for attribute in attributes:
@@ -185,8 +188,6 @@ def buildTree(node):
         newDepth =  node.get_depth() + 1
         node.add_neighbor(attribute, newDepth, newConstraint)
 
-    print "Constraint for " + node.get_id()
-    print node.get_constraint()
     # Recursively build the children nodes
     for child in node.get_connections():
         buildTree(child)
